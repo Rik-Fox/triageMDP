@@ -1,155 +1,5 @@
-# from typing import Dict, List, Tuple
-# import itertools as it
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import networkx as nx
-# from dataclasses import dataclass
-
-
-# @dataclass
-# class HealthState:
-#     """The 'God Mode' truth of the product."""
-
-#     product_health: float  # e.g., 0.85 for 85% healthy
-#     component_healths: dict[
-#         str, float
-#     ]  # e.g., {"Module_A": 0.85, "Module_B": 0.4} -1 if missing
-
-#     def adjust_health(self, factor: float) -> None:
-#         """Adjusts the health of a specific component by a factor."""
-#         product_health = np.clip(self.product_health * factor, 0.0, 1.0)
-#         self.product_health = product_health
-#         # Adjust individual component healths - this is a naive implementation;
-#         # where components are adjusted equally by the same factor
-#         for comp in self.component_healths:
-#             if self.component_healths[comp] >= 0.0:
-#                 self.component_healths[comp] = np.clip(
-#                     self.component_healths[comp] * factor, 0.0, 1.0
-#                 )
-
-
-# class Sensor:
-#     """Simulates the noise in diagnostic tools."""
-
-#     def __init__(self, noise_std: float) -> None:
-#         self.noise_std = noise_std
-
-#     def read(self, true_health: float) -> float:
-#         # Simple Gaussian noise, clipped to [0, 1]
-#         reading = true_health + np.random.normal(0, self.noise_std)
-#         return np.clip(reading, 0.0, 1.0)
-
-
-# class Action:
-#     """Represents an action that can be taken on a product."""
-
-#     def __init__(
-#         self, name: str, cost: float, time: float, resources: list = []
-#     ) -> None:
-#         self.name = name
-#         self.cost = cost
-#         self.time = time
-#         self.resources = resources
-
-
-# class Product:
-#     """Represents a product with multiple components."""
-
-#     def __init__(
-#         self,
-#         health_state: HealthState,
-#         ID: int = np.random.randint(1e2),
-#         name: str = "GenericProduct",
-#     ) -> None:
-#         self.ID = ID
-#         # self.name = f"{name}_{ID}"
-#         self.name = f"{name}"
-#         self.health_state = health_state
-#         self.component_list = list(self.health_state.component_healths.keys())
-
-#         self.components = []
-#         self.actions = []
-
-#         self.graph = self._build_graph()
-
-#         self.children = []  # List of resulting products after disassembly actions
-
-#     def _build_graph(self) -> Dict:
-#         """Builds the leaf node for the DAG."""
-
-#         G = nx.MultiDiGraph()
-
-#         G.add_node(self)
-
-#         return G
-
-#     def get_graph(self) -> Dict[str, List[Tuple[str, List[str], float, float]]]:
-#         """Returns the disassembly graph."""
-#         return self.graph
-
-#     def get_all_products(self) -> List[str]:
-#         """Returns a list of all product names in the graph."""
-#         return list(self.graph.keys())
-
-
-# class ProductGenerator:
-#     """Factory for creating random product instances."""
-
-#     def generate_batch(self, size: int) -> list[Product]:
-#         # Logic to generate products with varying defects
-#         products = []
-#         for _ in range(size):
-#             healths = {
-#                 "Module_A": np.random.uniform(low=0.0, high=1.0),
-#                 "Module_B": np.random.uniform(low=0.0, high=1.0),
-#                 "Module_C": np.random.uniform(low=0.0, high=1.0),
-#             }
-#             products.append(
-#                 Product(health_state=HealthState(component_healths=healths))
-#             )
-
-
-# def draw_labeled_multigraph(G, attr_name, ax=None):
-#     """
-#     Length of connectionstyle must be at least that of a maximum number of edges
-#     between pair of nodes. This number is maximum one-sided connections
-#     for directed graph and maximum total connections for undirected graph.
-#     """
-#     # Works with arc3 and angle3 connectionstyles
-#     # connectionstyle = [f"arc3,rad={r}" for r in it.accumulate([0.15] * 4)]
-#     connectionstyle = [f"angle3,angleA={r}" for r in it.accumulate([30] * 8)]
-
-#     # pos = nx.shell_layout(G)
-#     pos = nx.nx_agraph.graphviz_layout(G, prog="dot", args="")  # "twopi" "dot" "circo"
-#     # pos = nx.spring_layout(G, seed=173420, method="force")
-#     nx.draw_networkx_nodes(G, pos, ax=ax)
-#     nx.draw_networkx_labels(
-#         G, pos, labels={node: node.name for node in G.nodes}, font_size=20, ax=ax
-#     )
-#     nx.draw_networkx_edges(
-#         G,
-#         pos,
-#         edge_color="grey",
-#         # connectionstyle=connectionstyle,
-#         ax=ax,
-#     )
-
-#     labels = {
-#         tuple(edge): f"{attr_name}={attrs[attr_name]}"
-#         for *edge, attrs in G.edges(keys=True, data=True)
-#     }
-#     nx.draw_networkx_edge_labels(
-#         G=G,
-#         pos=pos,
-#         edge_labels=labels,
-#         # connectionstyle=connectionstyle,
-#         label_pos=0.3,
-#         font_color="blue",
-#         bbox={"alpha": 0},
-#         ax=ax,
-#     )
-
 from typing import Dict, List, Tuple, Optional
+from abc import ABC, abstractmethod
 import itertools as it
 import numpy as np
 import matplotlib.pyplot as plt
@@ -212,7 +62,7 @@ class Action:
         return f"{self.name}(Cost={self.cost}, Prereqs={self.prerequisites})"
 
 
-class Product:
+class Product(ABC):
     """Represents a physical product/component."""
 
     def __init__(
@@ -240,9 +90,37 @@ class Product:
 
     def _build_graph(self) -> nx.MultiDiGraph:
         """Helper to verify physical connections (visual mostly)."""
-        G = nx.MultiDiGraph()
-        G.add_node(self)
-        return G
+
+        # Simple recursive traversal to build the pure physical graph
+        def traverse(prod):
+            self.graph.add_node(node_for_adding=prod)
+            for act in prod.actions:
+                if act.is_disassembly:
+                    for comp in prod.components:
+                        self.graph.add_node(node_for_adding=comp)
+                        self.graph.add_edge(
+                            u_for_edge=prod, v_for_edge=comp, action=act.name
+                        )
+                        traverse(prod=comp)
+                else:
+                    # Prep actions loop back to the same physical product in a pure DAG
+                    self.graph.add_edge(
+                        u_for_edge=prod, v_for_edge=prod, action=act.name
+                    )
+
+            # for ce in prod.ce_options:
+            #     term_node = f"{ce.name}_{prod.name}"
+            #     self.graph.add_node(node_for_adding=term_node)
+            #     self.graph.add_edge(
+            #         u_for_edge=prod, v_for_edge=term_node, action=ce.name
+            #     )
+
+        traverse(prod=self)
+
+    @abstractmethod
+    def generate_true_state(self, mode="uniform") -> Dict[str, float]:
+        """Generates a dictionary of ground-truth health values for the product and its components."""
+        pass
 
 
 class ProductGenerator:

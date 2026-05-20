@@ -1,6 +1,7 @@
 from typing import Dict, List
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 from util import HealthState, Product, Action, draw_labeled_multigraph
 from model import CEOption
 
@@ -10,23 +11,6 @@ class Cell(Product):
 
     def __init__(self, health=1.0, name: str = "Cell") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
-        # old CE options with sigmoid fuzziness
-        # # Define Circular Economy Options for a Cell
-        # self.ce_options = [
-        #     CEOption(
-        #         name="Reuse_Cell",
-        #         base_value=50.0,  # High value
-        #         fuzziness_k=15.0,  # Strict quality curve
-        #         threshold=0.85,  # High threshold
-        #     ),
-        #     CEOption(
-        #         name="Recycle_Materials",
-        #         base_value=5.0,  # Low value
-        #         fuzziness_k=1.0,  # Flat curve (easy to qualify)
-        #         threshold=0.1,
-        #     ),
-        # ]
-
         # Define Circular Economy Options for a Cell
         self.ce_options = [
             CEOption(
@@ -42,6 +26,10 @@ class Cell(Product):
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+
+    def generate_true_state(self, mode="uniform") -> Dict[str, float]:
+        """Generates a dictionary of ground-truth health values for the product and its components."""
+        return {self.name: self.health_state.product_health}
 
 
 class Module(Product):
@@ -70,20 +58,6 @@ class Module(Product):
             ),
         ]
 
-        # old CE options with sigmoid fuzziness
-        # self.ce_options = [
-        #     CEOption(
-        #         "Reuse_Module",
-        #         base_value=120.0,
-        #         fuzziness_k=12.0,
-        #         threshold=0.8,
-        #         prerequisites=["Bench_Diagnostic"],
-        #     ),
-        #     CEOption(
-        #         "Recycle_Module_Direct", base_value=10.0, fuzziness_k=1.0, threshold=0.0
-        #     ),
-        # ]
-
         self.ce_options = [
             CEOption(
                 "Reuse_Module",
@@ -99,6 +73,13 @@ class Module(Product):
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+
+    def generate_true_state(self, mode="uniform") -> Dict[str, float]:
+        """Generates a dictionary of ground-truth health values for the product and its components."""
+        state = {self.name: self.health_state.product_health}
+        for component in self.components:
+            state.update(component.generate_true_state(mode))
+        return state
 
 
 class Battery(Product):
@@ -139,37 +120,12 @@ class Battery(Product):
             ),
         ]
 
-        # old CE options with sigmoid fuzziness
-        # self.ce_options = [
-        #     CEOption(
-        #         "Reuse_EV_Pack",
-        #         base_value=800.0,
-        #         fuzziness_k=20.0,
-        #         threshold=0.9,
-        #         prerequisites=["High_Voltage_Isolation"],
-        #     ),
-        #     CEOption(
-        #         "Repurpose_Storage",
-        #         base_value=400.0,
-        #         fuzziness_k=10.0,
-        #         threshold=0.7,
-        #         prerequisites=["Remove_Thermal_Shield"],
-        #     ),
-        #     CEOption(
-        #         "Recycle_Pack_Direct",
-        #         base_value=50.0,
-        #         fuzziness_k=1.0,
-        #         threshold=0.0,
-        #         prerequisites=["High_Voltage_Isolation"],
-        #     ),
-        # ]
-
         self.ce_options = [
             CEOption(
                 "Reuse_EV_Pack",
                 base_value=800.0,
                 # High risk: Ramp up from 0.80, Safe Zone 0.90 to 1.0
-                fuzzy_params=(0.80, 0.90, 1.0, 1.0),
+                fuzzy_params=(0.70, 0.80, 1.0, 1.0),
                 prerequisites=["High_Voltage_Isolation"],
             ),
             CEOption(
@@ -183,14 +139,46 @@ class Battery(Product):
                 "Recycle_Pack_Direct",
                 base_value=50.0,
                 # Flat acceptance curve
-                fuzzy_params=(0.0, 0.0, 1.0, 1.0),
+                fuzzy_params=(0.0, 0.4, 1.0, 1.0),
                 prerequisites=["High_Voltage_Isolation"],
             ),
         ]
 
+    def generate_true_state(self, mode="uniform") -> Dict[str, float]:
+        """Generates ground-truth health by enforcing hierarchical averages."""
+        # 1. Define Cell Healths (Base level)
+        if mode == "uniform":
+            # All modules are borderline (0.80)
+            cell_healths = [[0.80, 0.80], [0.80, 0.80], [0.80, 0.80]]
+        elif mode == "moderate":
+            # Slight variance (0.90, 0.80, 0.70)
+            cell_healths = [[0.90, 0.90], [0.80, 0.80], [0.70, 0.70]]
+        elif mode == "extreme":
+            # Massive variance (1.0, 1.0, 0.40) -> Two perfect modules, one dead module
+            cell_healths = [[1.00, 1.00], [1.00, 1.00], [0.40, 0.40]]
+        else:  # Random
+            cell_healths = [np.random.uniform(0.4, 1.0, 2).tolist() for _ in range(3)]
+
+        state = {}
+        module_healths = []
+
+        # 2. Build Modules from average of Cells
+        for i, cells in enumerate(cell_healths):
+            m_health = float(np.mean(cells))
+            module_healths.append(m_health)
+            state[f"Module_{i}"] = m_health
+            for j, c_health in enumerate(cells):
+                state[f"Module_{i}_Cell_{j}"] = c_health
+
+        # 3. Build Pack from average of Modules
+        pack_health = float(np.mean(module_healths))
+        state[self.name] = pack_health
+
+        return state
+
 
 if __name__ == "__main__":
-    from model import StateAugmentedGraph, Solver
+    from model import StateAugmentedDisassemblyGraph, Solver
 
     print("=" * 70)
     print("TEST 3: Integrated Battery Triage Simulation")
@@ -222,12 +210,14 @@ if __name__ == "__main__":
     }
 
     # 3. Build & Solve
-    sag = StateAugmentedGraph(battery)
+    sag = StateAugmentedDisassemblyGraph(battery)
     solver = Solver()
-    policy = solver.solve(sag.root, obs)
+    policy = solver.solve(sag.state_map[sag.root_key], obs)
 
     # 4. Hierarchical Output
     print("OPTIMIZED TRIAGE DECISION TREE:")
+
+    id_to_node_map = {node.id: node for node in sag.state_map.values()}
 
     def print_decision(node_id, indent=""):
         if node_id not in policy:
@@ -237,10 +227,15 @@ if __name__ == "__main__":
 
         # If the decision was to disassemble, print the children's decisions
         if "Disassemble" in action or "Extract" in action:
-            node = sag.product_map.get(node_id)
+            node = id_to_node_map.get(node_id)
             if node:
-                for _, child in node.children:
-                    print_decision(child.id, indent + "    |-- ")
+                action_name = action.split("Action: ")[1]
+                for act_obj, child_nodes_list in node.children:
+                    if act_obj.name == action_name:
+                        for child_node in child_nodes_list:
+                            print_decision(child_node.id, indent + "    |-- ")
+                        break
 
-    print_decision(battery.name)
+    root_node_id = sag.state_map[sag.root_key].id
+    print_decision(root_node_id)
     print("=" * 70 + "\n")
