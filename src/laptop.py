@@ -7,36 +7,46 @@ from model import CEOption
 class CPU(Product):
     """Intermediate assembly."""
 
-    def __init__(self, health=1.0, name: str = "CPU") -> None:
+    def __init__(self, health=1.0, value=50, f=0.5, name: str = "CPU") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
 
         self.actions = [
             Action(
                 "Bench_Diagnostic_CPU",
-                cost=5.0,
-                time=2.0,
+                cost=3.0,  # Reduced cost
+                time=1.0,
                 prerequisites=["Power_On_Test", "Bench_Diagnostic_Motherboard"],
             ),
         ]
         self.ce_options = [
             CEOption(
                 "Reuse_CPU",
-                base_value=100.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.7, 0.8, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_CPU"],
             ),
             CEOption(
                 "Repair_CPU",
-                base_value=50.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.4, 0.6, 0.8, 0.9),
                 prerequisites=["Bench_Diagnostic_CPU"],
             ),
             CEOption(
                 "Recycle_CPU",
-                base_value=10.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value_weight = f
 
         self._build_graph()
 
@@ -48,35 +58,45 @@ class CPU(Product):
 class GPU(Product):
     """Intermediate assembly."""
 
-    def __init__(self, health=1.0, name: str = "GPU") -> None:
+    def __init__(self, health=1.0, value=100, f=0.5, name: str = "GPU") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.actions = [
             Action(
                 "Bench_Diagnostic_GPU",
-                cost=8.0,
-                time=3.0,
+                cost=5.0,  # Reduced cost
+                time=2.0,
                 prerequisites=["Power_On_Test", "Bench_Diagnostic_Motherboard"],
             ),
         ]
         self.ce_options = [
             CEOption(
                 "Reuse_GPU",
-                base_value=150.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.65, 0.75, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_GPU"],
             ),
             CEOption(
                 "Repair_GPU",
-                base_value=80.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.4, 0.5, 0.7, 0.8),
                 prerequisites=["Bench_Diagnostic_GPU"],
             ),
             CEOption(
                 "Recycle_GPU",
-                base_value=15.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value_weight = f
 
         self._build_graph()
 
@@ -88,35 +108,45 @@ class GPU(Product):
 class Memory(Product):
     """Leaf node component."""
 
-    def __init__(self, health=1.0, name: str = "Memory") -> None:
+    def __init__(self, health=1.0, value=50, f=0.5, name: str = "Memory") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.actions = [
             Action(
                 "Bench_Diagnostic_Memory",
-                cost=6.0,
-                time=2.0,
+                cost=4.0,  # Reduced cost
+                time=1.0,
                 prerequisites=["Power_On_Test", "Bench_Diagnostic_Motherboard"],
             ),
         ]
         self.ce_options = [
             CEOption(
                 name="Reuse_Memory",
-                base_value=40.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.8, 0.9, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_Memory"],
             ),
             CEOption(
                 name="Repair_Memory",
-                base_value=20.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.8, 0.9),
                 prerequisites=["Bench_Diagnostic_Memory"],
             ),
             CEOption(
                 name="Recycle_Memory",
-                base_value=4.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value_weight = f
 
         self._build_graph()
 
@@ -128,13 +158,13 @@ class Memory(Product):
 class DataStorage(Product):
     """Leaf node component."""
 
-    def __init__(self, health=1.0, name: str = "DataStorage") -> None:
+    def __init__(self, health=1.0, value=250, f=0.5, name: str = "DataStorage") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.actions = self.actions = [
             Action(
                 "Bench_Diagnostic_DataStorage",
-                cost=15.0,
-                time=10.0,
+                cost=8.0,  # Reduced cost
+                time=5.0,
                 prerequisites=["Power_On_Test", "Bench_Diagnostic_Motherboard"],
             ),
             Action(
@@ -144,23 +174,33 @@ class DataStorage(Product):
         self.ce_options = [
             CEOption(
                 name="Reuse_DataStorage",
-                base_value=60.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.7, 0.8, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_DataStorage", "Wipe_DataStorage"],
             ),
             CEOption(
                 name="Repair_DataStorage",
-                base_value=30.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.4, 0.5, 0.8, 0.9),
                 prerequisites=["In_Situ_Diagnostic_DataStorage", "Wipe_DataStorage"],
             ),
             CEOption(
                 name="Recycle_DataStorage",
-                base_value=6.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
                 prerequisites=["Wipe_DataStorage"],
             ),
         ]
+        self.value_weight = f
         self._build_graph()
 
     def generate_true_state(self, mode="uniform") -> Dict[str, float]:
@@ -174,6 +214,8 @@ class Motherboard(Product):
     def __init__(
         self,
         health=1.0,
+        value=500,
+        f=1.0,
         cpu_health: float = 1.0,
         gpu_health: float = 1.0,
         memory_health: float = 1.0,
@@ -182,10 +224,30 @@ class Motherboard(Product):
     ) -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.components = [
-            CPU(health=cpu_health, name=f"{name}_CPU"),
-            GPU(health=gpu_health, name=f"{name}_GPU"),
-            Memory(health=memory_health, name=f"{name}_Memory"),
-            DataStorage(health=storage_health, name=f"{name}_DataStorage"),
+            CPU(
+                health=cpu_health,
+                value=(value / f) * 0.05,
+                f=0.05,
+                name=f"{name}_CPU",
+            ),  # value divided by motherboard f returns full value as emisions weigths are percent of whole product
+            GPU(
+                health=gpu_health,
+                value=(value / f) * 0.1,
+                f=0.1,
+                name=f"{name}_GPU",
+            ),
+            Memory(
+                health=memory_health,
+                value=(value / f) * 0.05,
+                f=0.05,
+                name=f"{name}_Memory",
+            ),
+            DataStorage(
+                health=storage_health,
+                value=(value / f) * 0.25,
+                f=0.25,
+                name=f"{name}_DataStorage",
+            ),
         ]
 
         self.actions = [
@@ -217,8 +279,8 @@ class Motherboard(Product):
             ),
             Action(
                 "Extract_Components",
-                cost=25.0,
-                time=15.0,
+                cost=10.0,  # Significantly reduced cost to incentivize disassembly
+                time=10.0,
                 prerequisites=["Bench_Diagnostic_Motherboard"],
                 is_disassembly=True,
             ),
@@ -226,7 +288,10 @@ class Motherboard(Product):
         self.ce_options = [
             CEOption(
                 "Reuse_Motherboard",
-                base_value=250.0,
+                base_value=value * health * 1.0,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.75, 0.85, 1.0, 1.0),
                 prerequisites=[
                     "Bench_Diagnostic_Motherboard",
@@ -235,7 +300,10 @@ class Motherboard(Product):
             ),
             CEOption(
                 "Repair_Motherboard",
-                base_value=180.0,
+                base_value=value * health * 0.6,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.6, 0.7, 0.8, 0.9),
                 prerequisites=[
                     "Bench_Diagnostic_Motherboard",
@@ -245,7 +313,10 @@ class Motherboard(Product):
             ),
             CEOption(
                 "Refurbish_Motherboard",
-                base_value=100.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.4, 0.5, 0.6, 0.7),
                 prerequisites=[
                     "Bench_Diagnostic_Motherboard",
@@ -257,10 +328,14 @@ class Motherboard(Product):
             ),
             CEOption(
                 "Recycle_Motherboard",
-                base_value=25.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value_weight = f
         self._build_graph()
 
     def generate_true_state(self, mode="uniform") -> Dict[str, float]:
@@ -274,7 +349,7 @@ class Motherboard(Product):
 class Display(Product):
     """Leaf node component."""
 
-    def __init__(self, health=1.0, name: str = "Display") -> None:
+    def __init__(self, health=1.0, value=100, f=1.0, name: str = "Display") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.actions = [
             Action(
@@ -287,22 +362,32 @@ class Display(Product):
         self.ce_options = [
             CEOption(
                 name="Reuse_Display",
-                base_value=70.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.8, 0.9, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_Display"],
             ),
             CEOption(
                 name="Repair_Display",
-                base_value=35.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.4, 0.5, 0.8, 0.9),
                 prerequisites=["Bench_Diagnostic_Display"],
             ),
             CEOption(
                 name="Recycle_Display",
-                base_value=7.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value_weight = f
         self._build_graph()
 
     def generate_true_state(self, mode="uniform") -> Dict[str, float]:
@@ -313,7 +398,7 @@ class Display(Product):
 class Keyboard(Product):
     """Leaf node component."""
 
-    def __init__(self, health=1.0, name: str = "Keyboard") -> None:
+    def __init__(self, health=1.0, value=100, f=1.0, name: str = "Keyboard") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.actions = [
             Action(
@@ -326,22 +411,32 @@ class Keyboard(Product):
         self.ce_options = [
             CEOption(
                 name="Reuse_Keyboard",
-                base_value=30.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.9, 0.95, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_Keyboard"],
             ),
             CEOption(
                 name="Repair_Keyboard",
-                base_value=15.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.8, 0.9),
                 prerequisites=["Bench_Diagnostic_Keyboard"],
             ),
             CEOption(
                 name="Recycle_Keyboard",
-                base_value=3.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value_weight = f
         self._build_graph()
 
     def generate_true_state(self, mode="uniform") -> Dict[str, float]:
@@ -352,7 +447,7 @@ class Keyboard(Product):
 class Battery(Product):
     """Leaf node component."""
 
-    def __init__(self, health=1.0, name: str = "Battery") -> None:
+    def __init__(self, health=1.0, value=100, f=1.0, name: str = "Battery") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.actions = [
             Action(
@@ -365,22 +460,32 @@ class Battery(Product):
         self.ce_options = [
             CEOption(
                 name="Reuse_Battery",
-                base_value=25.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.9, 0.95, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_Battery"],
             ),
             CEOption(
                 name="Repair_Battery",
-                base_value=12.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.8, 0.9),
                 prerequisites=["Bench_Diagnostic_Battery"],
             ),
             CEOption(
                 name="Recycle_Battery",
-                base_value=2.5,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value_weight = f
         self._build_graph()
 
     def generate_true_state(self, mode="uniform") -> Dict[str, float]:
@@ -391,7 +496,7 @@ class Battery(Product):
 class Chassis(Product):
     """Leaf node component."""
 
-    def __init__(self, health=1.0, name: str = "Chassis") -> None:
+    def __init__(self, health=1.0, value=50, f=1.0, name: str = "Chassis") -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.actions = [
             Action(
@@ -404,23 +509,33 @@ class Chassis(Product):
         self.ce_options = [
             CEOption(
                 name="Reuse_Chassis",
-                base_value=50.0,
+                base_value=value * health * 0.95,
+                phi_k=0.7 + (np.random.randn() * 0.2),
+                E_k=0.0,
+                Phi=1.0,
                 fuzzy_params=(0.95, 0.98, 1.0, 1.0),
                 prerequisites=["Bench_Diagnostic_Chassis"],
             ),
             CEOption(
                 name="Repair_Chassis",
-                base_value=20.0,
+                base_value=value * health * 0.5,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
+                Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.9, 0.95),
                 prerequisites=["Bench_Diagnostic_Chassis"],
             ),
             CEOption(
                 name="Recycle_Chassis",
-                base_value=5.0,
+                base_value=value * health * 0.3,
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
 
+        self.value_weight = f
         self._build_graph()
 
     def generate_true_state(self, mode="uniform") -> Dict[str, float]:
@@ -434,6 +549,8 @@ class Laptop(Product):
     def __init__(
         self,
         health=1.0,
+        value=1000,
+        f=1.0,
         motherboard_health: float = 1.0,
         Display_health: float = 1.0,
         keyboard_health: float = 1.0,
@@ -443,11 +560,33 @@ class Laptop(Product):
     ) -> None:
         super().__init__(health_state=HealthState(product_health=health), name=name)
         self.components = [
-            Motherboard(health=motherboard_health, name=f"{name}_Motherboard"),
-            Display(health=Display_health, name=f"{name}_Display"),
-            Keyboard(health=keyboard_health, name=f"{name}_Keyboard"),
-            Battery(health=Battery_health, name=f"{name}_Battery"),
-            Chassis(health=Chassis_health, name=f"{name}_Chassis"),
+            Motherboard(
+                health=motherboard_health,
+                f=0.47,  # weighted by emissions contribution, assumption that CE option value is correlated with emissions saving
+                value=value * 0.47,
+                name=f"{name}_Motherboard",
+            ),
+            Display(
+                health=Display_health, f=0.3, value=value * 0.3, name=f"{name}_Display"
+            ),
+            Keyboard(
+                health=keyboard_health,
+                f=0.03,
+                value=value * 0.03,
+                name=f"{name}_Keyboard",
+            ),
+            Battery(
+                health=Battery_health,
+                f=0.06,
+                value=value * 0.06,
+                name=f"{name}_Battery",
+            ),
+            Chassis(
+                health=Chassis_health,
+                f=0.06,
+                value=value * 0.06,
+                name=f"{name}_Chassis",
+            ),
         ]
 
         self.actions = [
@@ -512,8 +651,12 @@ class Laptop(Product):
         self.ce_options = [
             CEOption(
                 "Reuse_Laptop",
-                base_value=1000.0,
+                base_value=value * health * 1.0,  # this is recovery value, i.e beta
                 fuzzy_params=(0.8, 0.9, 1.0, 1.0),
+                phi_k=0.7
+                + (np.random.randn() * 0.2),  # this is the pathway modifier, i.e. phi
+                E_k=0.0,  # this is the emissions for reuse pathway, i.e. E
+                Phi=1.0,  # this is the emissions ratio, its 1 because we recover all virgin material when reusing
                 prerequisites=[
                     "Power_On_Test",
                     "In_Situ_Diagnostic_Display",
@@ -525,8 +668,11 @@ class Laptop(Product):
             ),
             CEOption(
                 "Refurbish_Laptop",
-                base_value=600.0,
+                base_value=value * health * 0.6,
                 fuzzy_params=(0.6, 0.7, 1.0, 1.0),
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)),
+                Phi=0.8,
                 prerequisites=[
                     "Open_Chassis",
                     "In_Situ_Diagnostic_Display",
@@ -538,8 +684,11 @@ class Laptop(Product):
             ),
             CEOption(
                 "Repair_Laptop",
-                base_value=300.0,
+                base_value=value * health * 0.5,
                 fuzzy_params=(0.4, 0.5, 0.7, 0.8),
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(21.0 + np.random.randn() * (21.0 * 0.2)),
+                Phi=0.8,
                 prerequisites=[
                     "Open_Chassis",
                     "Wipe_DataStorage",
@@ -547,13 +696,17 @@ class Laptop(Product):
             ),
             CEOption(
                 "Recycle_Laptop",
-                base_value=50.0,
+                base_value=value * health * 0.3,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
+                phi_k=1.0 + (np.random.randn() * 0.2),
+                E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
+                Phi=0.5,
                 prerequisites=[
                     "Wipe_DataStorage",
                 ],
             ),
         ]
+        self.value_weight = f
 
         self._build_graph()
 
@@ -613,13 +766,13 @@ class Laptop(Product):
         #     }
         else:  # Random
             comp_healths = {
-                comp.name.split("_")[-1]: np.random.uniform(0.4, 1.0)
+                comp.name.split("_")[-1]: np.random.uniform(0.2, 1.0)
                 for comp in self.components
             }
-            comp_healths["CPU"] = np.random.uniform(0.4, 1.0)
-            comp_healths["GPU"] = np.random.uniform(0.4, 1.0)
-            comp_healths["Memory"] = np.random.uniform(0.4, 1.0)
-            comp_healths["DataStorage"] = np.random.uniform(0.4, 1.0)
+            comp_healths["CPU"] = np.random.uniform(0.2, 1.0)
+            comp_healths["GPU"] = np.random.uniform(0.2, 1.0)
+            comp_healths["Memory"] = np.random.uniform(0.2, 1.0)
+            comp_healths["DataStorage"] = np.random.uniform(0.2, 1.0)
 
         # Set health for each component and add to state
         for comp in self.components:

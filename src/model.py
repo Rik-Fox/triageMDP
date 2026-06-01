@@ -15,13 +15,21 @@ class CEOption(util.Action):
         # fuzziness_k: float, # Slope of the sigmoid (original version)
         # threshold: float, # Center of the sigmoid (original version)
         fuzzy_params: Tuple[float, float, float, float],
+        phi_k=1.0,  #
+        E_k=0.0,  #   for process emissions for reuse pathway
+        Phi=1.0,
         cost: float = 0.0,
         time: float = 0.0,
+        # recovery_value_modifyer: float = 1.0,
         resources: list = None,
         prerequisites: list = None,
     ) -> None:
         super().__init__(name, cost, time, resources, prerequisites=prerequisites)
         self.base_value = base_value
+        # self.recovery_value_modifyer = recovery_value_modifyer
+        self.phi_k = phi_k
+        self.E_k = E_k
+        self.Phi = Phi
 
         # self.k = fuzziness_k  # Slope of the sigmoid (original version)
         # self.threshold = threshold  # Center of the sigmoid (original version)
@@ -80,7 +88,7 @@ class DisassemblyEdge(util.Action):
         super().__init__(action_name, cost, time)
 
         # FIX: Only append history brackets if history actually exists
-        hist_str = ",".join(sorted(list(history)))
+        # hist_str = ",".join(sorted(list(history)))
         # Action -> List of resulting Nodes (Hyper-edges for disassembly)
         self.children: List[Tuple[util.Action, List["Node"]]] = []
         self.ce_options: List[CEOption] = []
@@ -166,7 +174,11 @@ class StateAugmentedDisassemblyGraph:
 
 
 class Solver:
-    def solve(self, start_node: Node, observations: dict) -> dict:
+    def solve(self, start_node: Node, observations: dict) -> list[tuple[str, str]]:
+
+        # TODO: need to save disassembled products as seperate data entries,
+        # i.e. if we dissassy and use CE recovery on each part, we need to evaluate the fuzzy reward for each part separately and sum them up,
+        # rather than treating the whole product as one unit with a single health value.
         memo = {}
         policy = {}
 
@@ -211,7 +223,7 @@ class Solver:
             return memo[node.id]
 
         get_value(start_node)
-        return policy
+        return list(policy.items())
 
 
 if __name__ == "__main__":

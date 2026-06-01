@@ -150,101 +150,6 @@ def run_variance_comparison_experiment(
     plt.show(block=False)
     plt.pause(0.1)
 
-    import math
-
-
-def calculate_econ_score(
-    observed_health: float,
-    membership_val: float,
-    phi_k: float,
-    # beta: float,
-    omega: float,
-    alpha: float,
-) -> float:
-    """
-    Calculates the Economic Triage Score (T_Econ,k) for a given CE pathway.
-    """
-
-    if type(omega) == list:
-        omega = omega[0]
-    if type(phi_k) == list:
-        phi_k = phi_k[0]
-
-    # original value of the product (alpha) is adjusted by the observed health
-    virgin_value = alpha * max(observed_health, 0.01)
-
-    beta = 0.5 * virgin_value
-    # Calculate expected resale value after value addition/recovery
-    profitability = phi_k * beta
-
-    # Core equation
-    t_econ = membership_val * np.sqrt((profitability - omega) / virgin_value)
-
-    if t_econ > 1 or t_econ < 0:
-        print(f"Warning: T_Econ,k value {t_econ} is out of bounds. Clipping to [0, 1].")
-        t_econ = np.clip(t_econ, 0, 1)
-
-    return t_econ
-
-
-def calculate_eco_score(
-    membership_val: float, Phi_k: float, E_k: float, E_v: float
-) -> float:
-    """
-    Calculates the Environmental Triage Score (T_Eco,k) for a given CE pathway.
-    """
-    if type(Phi_k) == list:
-        Phi_k = Phi_k[0]
-    if type(E_k) == list:
-        E_k = E_k[0]
-    if type(E_v) == list:
-        E_v = E_v[0]
-
-    # Prevent division by zero if virgin emissions are equal to process emissions
-    denominator = max(E_v - E_k, 0.01)
-
-    penalty_ratio = E_k / denominator
-
-    # If the process emissions are extremely high, the penalty ratio will drive
-    # the term (1 - penalty) negative. Floor it at 0.
-    emission_benefit = max(0.0, 1.0 - penalty_ratio)
-
-    # Core equation
-    t_eco = membership_val * Phi_k * emission_benefit
-
-    # Ensure the score is strictly bounded between [0, 1]
-    return min(1.0, float(t_eco))
-
-
-def comp_value_map(product_name):
-
-    if product_name == "Display":
-        f = 0.3  # component_scaling_factor
-    elif product_name == "Chassis":
-        f = 0.06
-    elif product_name == "Supply":
-        f = 0.05
-    elif product_name == "Battery":
-        f = 0.06
-    elif product_name == "Motherboard":
-        f = 0.47
-    elif product_name == "Storage":
-        f = 0.24
-    elif product_name == "PCB":
-        f = 0.1
-    elif product_name == "RAM":
-        f = 0.05
-    elif product_name == "GPU":
-        f = 0.05
-    elif product_name == "CPU":
-        f = 0.03
-    elif product_name == "Keyboard":
-        f = 0.03
-    else:  # full laptop
-        f = 1.0
-
-    return f
-
 
 def get_maximal_pathway(
     policy: dict,
@@ -260,12 +165,6 @@ def get_maximal_pathway(
         params = {
             "optimal_policy": [],
             "cost": [0.0],  # Start with a single float in a list to allow mutation
-            "obs": [],
-            "E_v": [],
-            "phi_k": [],
-            "Phi": [],
-            "E_k": [],
-            "value_weight": [],
         }
     product, history = state
 
@@ -284,39 +183,9 @@ def get_maximal_pathway(
     decision = policy[policy_key]
 
     if decision.startswith("CE:"):
-        params["optimal_policy"].append(decision)
-        # virgin emissions for a laptop (kg CO2e)
-        E_v = 331.0 + np.random.randn() * (331.0 * 0.2)
-        # Extract base product name
-        product_name = product.split("_")[-1]
-
-        f = comp_value_map(product_name)
-
-        if "CE: Reuse" in decision:
-            phi_k = 0.7 + np.random.randn() * (1.0 * 0.2)
-            E_k = 0.0  #   for process emissions for reuse pathway
-            Phi = 1.0
-        elif "CE: Repair" in decision or "CE: Refurbish" in decision:
-            phi_k = 1.0 + np.random.randn() * (1.0 * 0.2)
-            E_k = (
-                21.0 + np.random.randn() * (21.0 * 0.2)
-            ) * f  #   for process emissions for repair pathway
-            Phi = 0.8
-        elif "CE: Recycle" in decision:
-            phi_k = 0.5 + np.random.randn() * (1.0 * 0.2)
-            E_k = 2.0 + np.random.randn() * (2.0 * 0.2)  # not by f
-            #   for environmental impact factor
-            Phi = 0.5
-
-        # cost = 50.0 + np.random.randn() * (50.0 * 0.2)  # CE processing cost
-
-        # params["cost"].append(cost)
-        params["cost"][0] += 50.0 + np.random.randn() * (50.0 * 0.2)
-        params["E_v"].append(E_v)
-        params["phi_k"].append(phi_k)
-        params["Phi"].append(Phi)
-        params["E_k"].append(E_k)
-        params["value_weight"].append(f)
+        params["optimal_policy"].append(
+            decision
+        )  # Final CE cost is now handled in calculate_mdp_reward
 
     else:
 
@@ -365,14 +234,7 @@ def get_maximal_pathway(
                 child_params = {
                     "optimal_policy": [],
                     "cost": [0.0],
-                    "obs": [],
-                    "E_v": [],
-                    "phi_k": [],
-                    "Phi": [],
-                    "E_k": [],
-                    "value_weight": [],
                 }
-
                 components.append(
                     [
                         child.product.name,
@@ -384,52 +246,10 @@ def get_maximal_pathway(
                         ),
                     ]
                 )
-
-            for comp in components:
-                params["optimal_policy"].append(comp[1]["optimal_policy"])
-                params["cost"].append(comp[1]["cost"])
-                params["obs"].append(comp[1]["obs"])
-                params["E_v"].append(comp[1]["E_v"])
-                params["phi_k"].append(comp[1]["phi_k"])
-                params["Phi"].append(comp[1]["Phi"])
-                params["E_k"].append(comp[1]["E_k"])
-                params["value_weight"].append(comp[1]["value_weight"])
+            # Store the structured component results instead of flattening
+            params["components"] = components
 
     return params
-
-
-def calculate_econ_eco_scores(policy_params, health, node, alpha):
-    # observed health of the laptop OR components parts depending on policy action requirements
-    ce_opt = next(
-        opt
-        for opt in node.ce_options
-        if opt.name == policy_params["optimal_policy"][-1].split(" ")[-1]
-    )
-
-    mu = ce_opt.get_fuzzy_membership(health)
-
-    phi_k = policy_params["phi_k"]
-    E_k = policy_params["E_k"]
-    E_v = policy_params["E_v"]
-    Phi = policy_params["Phi"]
-    cost = policy_params["cost"]
-
-    t_econ = calculate_econ_score(
-        observed_health=health,
-        membership_val=mu,  #   for fuzzy membership value
-        phi_k=phi_k,  #   for profitability factor
-        omega=cost,  #   for processing cost
-        alpha=alpha,
-    )
-
-    t_eco = calculate_eco_score(
-        membership_val=mu,  #   for fuzzy membership value
-        Phi_k=Phi,  #   for environmental impact factor
-        E_k=E_k,  #   for process emissions
-        E_v=E_v,  #   for virgin emissions
-    )
-
-    return t_econ, t_eco
 
 
 def calculate_mdp_reward(
@@ -437,99 +257,142 @@ def calculate_mdp_reward(
     sadg,
     obs,
     alpha,
-):
+) -> list[dict]:
+    """
+    Calculates the economic and ecological scores for an optimal policy path.
 
-    opt_pol_params = get_maximal_pathway(
-        policy=policy,
-        sadg=sadg,
-        state=sadg.root_key,
-    )
+    If the policy involves disassembly, this function returns a list of records,
+    one for each final component. Otherwise, it returns a list with a single
+    record for the top-level product.
+    """
+    if isinstance(policy, list):
+        policy = dict(policy)
 
-    product = sadg.root_key[0]
+    opt_pol_params = get_maximal_pathway(policy=policy, sadg=sadg, state=sadg.root_key)
 
-    # if CE here then a laptop strat was taken
-    if "CE: " in opt_pol_params["optimal_policy"][-1]:
-        health = obs[product]
+    records = []
 
-        state = (product, frozenset(opt_pol_params["optimal_policy"][:-1]))
+    def find_and_process_ce_paths(
+        params, base_cost, base_readable_path, base_actions_history, product_full_name
+    ):
+        """Recursively traverses policy params to find all CE leaf nodes."""
 
-        node = sadg.state_map.get(state)
+        if "_" in product_full_name:
+            product_base_name = product_full_name.split("_")[-1]
+        else:
+            product_base_name = "laptop"
 
-        t_econ, t_eco = calculate_econ_eco_scores(
-            policy_params=opt_pol_params, health=health, node=node, alpha=alpha
-        )
+        # Add current node's actions to the path
+        current_readable_path = [
+            [product_base_name, action] for action in params["optimal_policy"]
+        ]
 
-    # if no CE then it was a component reuse strategy and we need to sum up the parameters of the components
-    else:
-        t_econs = []
-        t_ecos = []
-        values = []
-        base_path = opt_pol_params["optimal_policy"][:-5]
+        if params.get("components"):
+            # This is a disassembly node. Recurse on children.
+            new_base_cost = base_cost + params["cost"][0]
+            new_readable_path = base_readable_path + current_readable_path
+            new_history = base_actions_history.union(params["optimal_policy"])
 
-        comp_pol = opt_pol_params["optimal_policy"][-5:]
-        # first entry of comp is motherboard if this doesnt end in CE then it was further broken down
-        # and we need to sum up the parameters of the motherboard components
-        for comp in comp_pol:
-            if "CE: " in comp[-1]:
-                comp_name = comp[-1].split("_")[-1]
-                comp_product = product + "_" + comp_name
-                health = obs[comp_product]
-
-                state = (
-                    comp_product,
-                    frozenset(base_path).union(comp[:-1]),
+            for comp_full_name, comp_params in params["components"]:
+                find_and_process_ce_paths(
+                    comp_params,
+                    new_base_cost,
+                    new_readable_path,
+                    new_history,
+                    comp_full_name,
                 )
+        else:
+            # This is a terminal node with a CE decision. Create a record.
+            total_cost = base_cost + params["cost"][0]
+            marginal_cost = params["cost"][0]
 
-                node = sadg.state_map.get(state)
+            # Reconstruct the state to find the correct node for the CE decision
+            actions_before_ce = params["optimal_policy"][:-1]
+            history = base_actions_history.union(actions_before_ce)
+            state = (product_full_name, history)
+            node = sadg.state_map.get(state)
 
-                policy = base_path + comp
-                comp_params = {
-                    "optimal_policy": policy,
-                    "cost": opt_pol_params["cost"].pop(0),
-                    "E_v": opt_pol_params["E_v"].pop(0),
-                    "obs": opt_pol_params["obs"].pop(0),
-                    "phi_k": opt_pol_params["phi_k"].pop(0),
-                    "Phi": opt_pol_params["Phi"].pop(0),
-                    "E_k": opt_pol_params["E_k"].pop(0),
-                    "value_weight": opt_pol_params["value_weight"].pop(0),
+            if not node:
+                return  # Should not happen with a valid policy
+
+            health = obs[product_full_name]
+
+            final_params = params.copy()
+            final_params["cost"] = [total_cost]
+
+            # observed health of the laptop OR components parts depending on policy action requirements
+            ce_opt = next(
+                opt
+                for opt in node.ce_options
+                if opt.name == final_params["optimal_policy"][-1].split(" ")[-1]
+            )
+            ce_route = ce_opt.name
+
+            mu = ce_opt.get_fuzzy_membership(health)  #   for fuzzy membership value
+
+            ###T_econ
+            # The final processing cost (e.g., logistics, admin) should be part of the CE option itself.
+            # Here we assume a fixed cost for all options, but this could be customized per CE route.
+            final_processing_cost = np.random.randn() * (
+                50.0 * (1.0 - health)
+            )  # Higher health = lower processing cost variability
+
+            # we should consider the MARGINAL profit of a component, assuming the shared disassembly
+            # costs were justified by the sum of all component values.
+            # The solver makes its decision based on this collective reward, so our reporting should reflect that.
+            cost_for_reward_calc = marginal_cost + final_processing_cost
+
+            # A better normalization is the component's own virgin value, not the whole laptop's.
+            # This is approximated by its value weight multiplied by the total product value (alpha).
+            # We also ensure it's not zero to avoid division errors.
+            virgin_value = max(node.product.value_weight * alpha, 0.01)
+            # Calculate expected resale value after value addition/recovery
+            profitability = ce_opt.phi_k * ce_opt.base_value
+            profit = profitability - cost_for_reward_calc
+            t_econ = mu * np.sqrt(np.clip(profit / virgin_value, 0, 1))
+
+            if t_econ > 1 or t_econ < 0:
+                print(
+                    f"Warning: T_Econ,k value {t_econ} is out of bounds. Clipping to [0, 1]."
+                )
+                t_econ = np.clip(t_econ, 0, 1)
+
+            ###T_eco
+            # virgin emissions for a laptop (kg CO2e)
+            E_v = 331.0 + np.random.randn() * (331.0 * 0.2)
+            # A more standard formulation is to calculate the benefit relative to virgin emissions.
+            emission_benefit = max(0.0, (E_v - ce_opt.E_k) / E_v)
+            # Core equation
+            t_eco = mu * ce_opt.Phi * emission_benefit
+
+            if t_eco > 1 or t_eco < 0:
+                print(
+                    f"Warning: T_Eco,k value {t_eco} is out of bounds. Clipping to [0, 1]."
+                )
+                t_eco = np.clip(t_eco, 0, 1)
+
+            mdp_reward = np.sqrt(t_econ**2 + t_eco**2)
+
+            full_readable_path = base_readable_path + current_readable_path
+
+            records.append(
+                {
+                    "component_name": product_base_name,
+                    "readable_policy": json.dumps(full_readable_path),
+                    "econ_reward": t_econ,
+                    "eco_reward": t_eco,
+                    "mdp_reward": mdp_reward,
+                    "ce_route": ce_route,
+                    "cost": total_cost,  # This is the cost of the path to this CE option
+                    "profitability": profitability,  # Potential resale value (phi * beta)
+                    "profit": profit,  # Actual profit in pounds
+                    "base_value": ce_opt.base_value,  # The 'beta' value
+                    "value_weight": node.product.value_weight,
                 }
+            )
 
-                t_econ, t_eco = calculate_econ_eco_scores(
-                    policy_params=comp_params, health=health, node=node, alpha=alpha
-                )
-
-                t_econs.append(t_econ)
-                t_ecos.append(t_eco)
-                values.append(node.ce_options[0].get_expected_reward(health))
-
-                # phi_k = np.sum(opt_pol_params["phi_k"])
-                # E_k = np.sum(opt_pol_params["E_k"])
-                # E_v = np.sum(opt_pol_params["E_v"])
-                # Phi = np.sum(opt_pol_params["Phi"])
-                # cost = np.sum(opt_pol_params["cost"])
-
-            else:
-
-                # sum over motherboard elements in first entry then add to sum of other elements
-                phi_k = np.sum(opt_pol_params["phi_k"][0]) + np.sum(
-                    opt_pol_params["phi_k"][1:]
-                )
-                E_k = np.sum(opt_pol_params["E_k"][0]) + np.sum(
-                    opt_pol_params["E_k"][1:]
-                )
-                E_v = np.sum(opt_pol_params["E_v"][0]) + np.sum(
-                    opt_pol_params["E_v"][1:]
-                )
-                Phi = np.sum(opt_pol_params["Phi"][0]) + np.sum(
-                    opt_pol_params["Phi"][1:]
-                )
-                cost = np.sum(opt_pol_params["cost"][0]) + np.sum(
-                    opt_pol_params["cost"][1:]
-                )
-
-    mdp_reward = np.sqrt((t_econ**2) + (t_eco**2))
-
-    return t_econ, t_eco, mdp_reward
+    find_and_process_ce_paths(opt_pol_params, 0.0, [], frozenset(), sadg.root_key[0])
+    return records
 
 
 def run_mass_laptop_triage_experiment(sim, n_episodes=10000, noise_level=0.2):
@@ -544,12 +407,19 @@ def run_mass_laptop_triage_experiment(sim, n_episodes=10000, noise_level=0.2):
     # Baseline market value defined in paper (£1000)
     BASE_ALPHA = 1000.0
 
-    results = []
+    os.makedirs("results", exist_ok=True)
+    filename = f"results/mass_triage_experiment_n{n_episodes}_noise{noise_level}.csv"
+    # If the file exists from a previous run, remove it to start fresh.
+    if os.path.exists(filename):
+        os.remove(filename)
+
+    batch_results = []
+    batch_size = 500  # Save to disk every 500 episodes
 
     for i in range(n_episodes):
         laptop_name = f"{i}"
-        laptop = Laptop(name=laptop_name)
         alpha = BASE_ALPHA * np.random.uniform(0.8, 1.2)
+        laptop = Laptop(value=alpha, name=laptop_name)
         true_state = laptop.generate_true_state(mode="random")
 
         obs = {}
@@ -561,33 +431,44 @@ def run_mass_laptop_triage_experiment(sim, n_episodes=10000, noise_level=0.2):
 
         policy = sim.solver.solve(sadg.state_map[sadg.root_key], obs)
 
-        t_econ, t_eco, mdp_reward = calculate_mdp_reward(policy, sadg, obs, alpha)
+        # This now returns a list of dicts, one for each final component/product
+        component_records = calculate_mdp_reward(policy, sadg, obs, alpha)
 
-        # 7. Record the Episode
-        record = {
-            "episode_id": i,
-            "laptop_name": laptop_name,
-            "alpha_value": round(alpha, 2),
-            "true_state": json.dumps(true_state),  # Serialize dict to string for CSV
-            "observation": json.dumps(obs),
-            "policy": json.dumps(policy),
-            "econ_reward": t_econ,
-            "eco_reward": t_eco,
-            "mdp_reward": mdp_reward,
-        }
-        results.append(record)
+        for component_record in component_records:
+            # Base record with info for the whole episode
+            record = {
+                "episode_id": i,
+                "laptop_name": laptop_name,
+                "alpha_value": round(alpha, 2),
+                "true_state": json.dumps(
+                    true_state
+                ),  # Serialize dict to string for CSV
+                "observation": json.dumps(obs),
+                "full_policy": json.dumps(policy),
+            }
+            # Add the component-specific data
+            record.update(component_record)
+            batch_results.append(record)
 
-        if (i + 1) % 1000 == 0:
-            print(f"Processed {i + 1}/{n_episodes} laptops...")
+        # Periodically write the batch to the CSV to manage memory
+        if (i + 1) % batch_size == 0 or (i + 1) == n_episodes:
+            if not batch_results:
+                continue
 
-    df = pd.DataFrame(results)
+            df_batch = pd.DataFrame(batch_results)
+            # Write header only for the first chunk
+            header = not os.path.exists(filename)
+            df_batch.to_csv(filename, mode="a", header=header, index=False)
 
-    os.makedirs("results", exist_ok=True)
-    filename = f"results/mass_triage_experiment_n{n_episodes}_noise{noise_level}.csv"
+            batch_results = []  # Reset the batch
+            print(f"Processed and saved episodes up to {i + 1}/{n_episodes}...")
 
-    df.to_csv(filename, index=False)
-
-    return df
+    print(f"\nExperiment complete. Results saved to {filename}")
+    # To maintain the function signature, we can read the file back.
+    # Note: This reloads the entire dataset into memory. If memory is a
+    # critical concern for the caller, consider returning the filename instead.
+    # df = pd.read_csv(filename)
+    # return df
 
 
 if __name__ == "__main__":
@@ -606,7 +487,7 @@ if __name__ == "__main__":
 
     # sim.run_single_trace(noise_level=0.1)
 
-    sim.plot_fuzzy_reward_curves()
+    # sim.plot_fuzzy_reward_curves()
 
     # run_noise_sensitivity_experiment(sim)
 
