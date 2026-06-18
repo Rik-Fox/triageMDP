@@ -2,10 +2,15 @@ import numpy as np
 from matplotlib.pylab import rand
 import networkx as nx
 from typing import Dict, List, Tuple
-import util
+
+# from src.util import Action, Product
+
+from util import Action, Product
+
+# import src.util
 
 
-class CEOption(util.Action):
+class CEOption(Action):
     """Represents a leaf node (Reuse, Recycle) with Fuzzy Logic."""
 
     def __init__(
@@ -73,15 +78,17 @@ class CEOption(util.Action):
     def get_expected_reward(self, observed_health: float) -> float:
         """Returns scalar reward: (Membership * Value) - Cost."""
         mu = self.get_fuzzy_membership(observed_health)
-        return (
-            self.base_value * mu
-        ) - self.cost  # deterministic reward based on fuzzy membership
+        # deterministic reward based on fuzzy membership
+        return ((self.base_value * self.phi_k) * mu) - self.cost
+        # deterministic reward based on fuzzy membership
+        # return (self.base_value * mu ) - self.cost
+
         # return (
         #     (self.base_value + (50 * np.random.rand()) - 25) * mu
         # ) - self.cost  # stochastic reward with noise, scaled by fuzzy membership
 
 
-class DisassemblyEdge(util.Action):
+class DisassemblyEdge(Action):
     """An edge representing a disassembly action with cost."""
 
     def __init__(self, action_name: str, cost: float = 0.0, time: float = 0.0) -> None:
@@ -90,14 +97,14 @@ class DisassemblyEdge(util.Action):
         # FIX: Only append history brackets if history actually exists
         # hist_str = ",".join(sorted(list(history)))
         # Action -> List of resulting Nodes (Hyper-edges for disassembly)
-        self.children: List[Tuple[util.Action, List["Node"]]] = []
+        self.children: List[Tuple[Action, List["Node"]]] = []
         self.ce_options: List[CEOption] = []
 
 
 class Node:
     """A node in the State-Augmented Graph encoding physical product + history."""
 
-    def __init__(self, product: util.Product, history: frozenset) -> None:
+    def __init__(self, product: Product, history: frozenset) -> None:
         self.product = product
         self.history = history
 
@@ -109,7 +116,7 @@ class Node:
             self.id = product.name
 
         # Action -> List of resulting Nodes (Hyper-edges for disassembly)
-        self.children: List[Tuple[util.Action, List["Node"]]] = []
+        self.children: List[Tuple[Action, List["Node"]]] = []
         self.ce_options: List[CEOption] = []
 
     def __repr__(self):
@@ -119,7 +126,7 @@ class Node:
 class StateAugmentedDisassemblyGraph:
     """Builds the Unrolled Decision Graph using NetworkX."""
 
-    def __init__(self, root_product: util.Product) -> None:
+    def __init__(self, root_product: Product) -> None:
         self.state_map: Dict[Tuple[str, frozenset], Node] = (
             {}
         )  # memoisation of (product, history) to Node
@@ -127,7 +134,7 @@ class StateAugmentedDisassemblyGraph:
         self.root_key = (root_product.name, frozenset())
         self._build_tree(root_product, frozenset())
 
-    def _build_tree(self, product: util.Product, current_history: frozenset) -> Node:
+    def _build_tree(self, product: Product, current_history: frozenset) -> Node:
         state_key = (product.name, current_history)
         # check if we have called this state before and return the existing node to avoid redundant computations
         if state_key in self.state_map:

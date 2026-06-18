@@ -3,6 +3,9 @@ using  dynamic programming to solve contructed MDPs that have fuzzy rewards due 
 
 ## Project Structure
 
+## install and run
+
+
 ### Source Files
 
 -   **`run.py`**: The main entry point for running simulations and experiments. It contains functions to run different scenarios, such as noise sensitivity analysis and variance comparison experiments for different products.

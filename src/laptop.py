@@ -1,5 +1,9 @@
 from typing import Dict, List
 import numpy as np
+
+# from src.util import HealthState, Product, Action, draw_labeled_multigraph
+# from src.model import CEOption
+
 from util import HealthState, Product, Action, draw_labeled_multigraph
 from model import CEOption
 
@@ -31,7 +35,7 @@ class CPU(Product):
             CEOption(
                 "Repair_CPU",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.4, 0.6, 0.8, 0.9),
@@ -40,12 +44,13 @@ class CPU(Product):
             CEOption(
                 "Recycle_CPU",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value = value
         self.value_weight = f
 
         self._build_graph()
@@ -81,7 +86,7 @@ class GPU(Product):
             CEOption(
                 "Repair_GPU",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.4, 0.5, 0.7, 0.8),
@@ -90,12 +95,13 @@ class GPU(Product):
             CEOption(
                 "Recycle_GPU",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value = value
         self.value_weight = f
 
         self._build_graph()
@@ -131,7 +137,7 @@ class Memory(Product):
             CEOption(
                 name="Repair_Memory",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.8, 0.9),
@@ -140,12 +146,13 @@ class Memory(Product):
             CEOption(
                 name="Recycle_Memory",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value = value
         self.value_weight = f
 
         self._build_graph()
@@ -184,7 +191,7 @@ class DataStorage(Product):
             CEOption(
                 name="Repair_DataStorage",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.4, 0.5, 0.8, 0.9),
@@ -193,13 +200,14 @@ class DataStorage(Product):
             CEOption(
                 name="Recycle_DataStorage",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
                 prerequisites=["Wipe_DataStorage"],
             ),
         ]
+        self.value = value
         self.value_weight = f
         self._build_graph()
 
@@ -301,10 +309,10 @@ class Motherboard(Product):
             CEOption(
                 "Repair_Motherboard",
                 base_value=value * health * 0.6,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
-                fuzzy_params=(0.6, 0.7, 0.8, 0.9),
+                fuzzy_params=(0.4, 0.5, 0.6, 0.7),
                 prerequisites=[
                     "Bench_Diagnostic_Motherboard",
                     "Full_System_Diagnostic",
@@ -313,11 +321,11 @@ class Motherboard(Product):
             ),
             CEOption(
                 "Refurbish_Motherboard",
-                base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                base_value=value * health * 0.7,
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
-                fuzzy_params=(0.4, 0.5, 0.6, 0.7),
+                fuzzy_params=(0.6, 0.7, 0.8, 0.9),
                 prerequisites=[
                     "Bench_Diagnostic_Motherboard",
                     "In_Situ_Diagnostic_CPU",
@@ -329,12 +337,13 @@ class Motherboard(Product):
             CEOption(
                 "Recycle_Motherboard",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value = value
         self.value_weight = f
         self._build_graph()
 
@@ -372,7 +381,7 @@ class Display(Product):
             CEOption(
                 name="Repair_Display",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.4, 0.5, 0.8, 0.9),
@@ -381,12 +390,13 @@ class Display(Product):
             CEOption(
                 name="Recycle_Display",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value = value
         self.value_weight = f
         self._build_graph()
 
@@ -421,7 +431,7 @@ class Keyboard(Product):
             CEOption(
                 name="Repair_Keyboard",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.8, 0.9),
@@ -430,12 +440,13 @@ class Keyboard(Product):
             CEOption(
                 name="Recycle_Keyboard",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value = value
         self.value_weight = f
         self._build_graph()
 
@@ -470,7 +481,7 @@ class Battery(Product):
             CEOption(
                 name="Repair_Battery",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.8, 0.9),
@@ -479,12 +490,13 @@ class Battery(Product):
             CEOption(
                 name="Recycle_Battery",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
+        self.value = value
         self.value_weight = f
         self._build_graph()
 
@@ -519,7 +531,7 @@ class Chassis(Product):
             CEOption(
                 name="Repair_Chassis",
                 base_value=value * health * 0.5,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)) * f,
                 Phi=0.8,
                 fuzzy_params=(0.5, 0.6, 0.9, 0.95),
@@ -528,13 +540,14 @@ class Chassis(Product):
             CEOption(
                 name="Recycle_Chassis",
                 base_value=value * health * 0.3,
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
             ),
         ]
 
+        self.value = value
         self.value_weight = f
         self._build_graph()
 
@@ -654,7 +667,7 @@ class Laptop(Product):
                 base_value=value * health * 1.0,  # this is recovery value, i.e beta
                 fuzzy_params=(0.8, 0.9, 1.0, 1.0),
                 phi_k=0.7
-                + (np.random.randn() * 0.2),  # this is the pathway modifier, i.e. phi
+                + (np.random.randn() * 0.02),  # this is the pathway modifier, i.e. phi
                 E_k=0.0,  # this is the emissions for reuse pathway, i.e. E
                 Phi=1.0,  # this is the emissions ratio, its 1 because we recover all virgin material when reusing
                 prerequisites=[
@@ -670,7 +683,7 @@ class Laptop(Product):
                 "Refurbish_Laptop",
                 base_value=value * health * 0.6,
                 fuzzy_params=(0.6, 0.7, 1.0, 1.0),
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)),
                 Phi=0.8,
                 prerequisites=[
@@ -686,7 +699,7 @@ class Laptop(Product):
                 "Repair_Laptop",
                 base_value=value * health * 0.5,
                 fuzzy_params=(0.4, 0.5, 0.7, 0.8),
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(21.0 + np.random.randn() * (21.0 * 0.2)),
                 Phi=0.8,
                 prerequisites=[
@@ -698,7 +711,7 @@ class Laptop(Product):
                 "Recycle_Laptop",
                 base_value=value * health * 0.3,
                 fuzzy_params=(0.0, 0.0, 1.0, 1.0),
-                phi_k=1.0 + (np.random.randn() * 0.2),
+                phi_k=1.0 + (np.random.randn() * 0.02),
                 E_k=(2.0 + np.random.randn() * (2.0 * 0.2)),
                 Phi=0.5,
                 prerequisites=[
@@ -706,6 +719,7 @@ class Laptop(Product):
                 ],
             ),
         ]
+        self.value = value
         self.value_weight = f
 
         self._build_graph()

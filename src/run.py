@@ -202,8 +202,11 @@ def get_maximal_pathway(
             if edge_action.name == action_name
         ]
 
+        action_obj = next(
+            (a for a in node.product.actions if a.name == action_name), None
+        )
         # 4. Handle Linear vs Branching Paths
-        if action_name != "Extract_Components":
+        if not action_obj or not action_obj.is_disassembly:
             # Linear progression (e.g., Diagnostics, Wiping Data)
 
             next_state = (product, node.history.union({action_name}))
@@ -256,6 +259,7 @@ def calculate_mdp_reward(
     policy,
     sadg,
     obs,
+    true_state,
     alpha,
 ) -> list[dict]:
     """
@@ -315,8 +319,8 @@ def calculate_mdp_reward(
             if not node:
                 return  # Should not happen with a valid policy
 
-            health = obs[product_full_name]
-
+            health = true_state.get(product_full_name, obs.get(product_full_name, 0.5))
+            observed_h = obs.get(product_full_name, 0.5)
             final_params = params.copy()
             final_params["cost"] = [total_cost]
 
@@ -333,9 +337,12 @@ def calculate_mdp_reward(
             ###T_econ
             # The final processing cost (e.g., logistics, admin) should be part of the CE option itself.
             # Here we assume a fixed cost for all options, but this could be customized per CE route.
-            final_processing_cost = np.random.randn() * (
-                50.0 * (1.0 - health)
-            )  # Higher health = lower processing cost variability
+            # Higher health = lower processing cost variability
+            final_processing_cost = (50.0 * node.product.value_weight) + (
+                np.random.randn()
+                * ((50.0 * node.product.value_weight) * 0.2)
+                * (1.0 - health)
+            )
 
             # we should consider the MARGINAL profit of a component, assuming the shared disassembly
             # costs were justified by the sum of all component values.
@@ -346,6 +353,8 @@ def calculate_mdp_reward(
             # This is approximated by its value weight multiplied by the total product value (alpha).
             # We also ensure it's not zero to avoid division errors.
             virgin_value = max(node.product.value_weight * alpha, 0.01)
+            # virgin_value = node.product.value
+
             # Calculate expected resale value after value addition/recovery
             profitability = ce_opt.phi_k * ce_opt.base_value
             profit = profitability - cost_for_reward_calc
@@ -359,7 +368,9 @@ def calculate_mdp_reward(
 
             ###T_eco
             # virgin emissions for a laptop (kg CO2e)
-            E_v = 331.0 + np.random.randn() * (331.0 * 0.2)
+            E_v = (
+                331.0 + np.random.randn() * (331.0 * 0.2)
+            ) * node.product.value_weight
             # A more standard formulation is to calculate the benefit relative to virgin emissions.
             emission_benefit = max(0.0, (E_v - ce_opt.E_k) / E_v)
             # Core equation
@@ -388,6 +399,8 @@ def calculate_mdp_reward(
                     "profit": profit,  # Actual profit in pounds
                     "base_value": ce_opt.base_value,  # The 'beta' value
                     "value_weight": node.product.value_weight,
+                    "true_health": health,
+                    "observed_health": observed_h,
                 }
             )
 
@@ -432,7 +445,7 @@ def run_mass_laptop_triage_experiment(sim, n_episodes=10000, noise_level=0.2):
         policy = sim.solver.solve(sadg.state_map[sadg.root_key], obs)
 
         # This now returns a list of dicts, one for each final component/product
-        component_records = calculate_mdp_reward(policy, sadg, obs, alpha)
+        component_records = calculate_mdp_reward(policy, sadg, obs, true_state, alpha)
 
         for component_record in component_records:
             # Base record with info for the whole episode
@@ -493,7 +506,7 @@ if __name__ == "__main__":
 
     # run_variance_comparison_experiment(sim)
 
-    run_mass_laptop_triage_experiment(sim, n_episodes=10000, noise_level=0.2)
+    run_mass_laptop_triage_experiment(sim, n_episodes=1000, noise_level=0.2)
 
     # 7. Final Blocking call
     print("All tests complete. Please close the plot windows to exit.")
