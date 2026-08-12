@@ -319,7 +319,7 @@ def calculate_mdp_reward(
             if not node:
                 return  # Should not happen with a valid policy
 
-            health = true_state.get(product_full_name, obs.get(product_full_name, 0.5))
+            true_h = true_state.get(product_full_name, obs.get(product_full_name, 0.5))
             observed_h = obs.get(product_full_name, 0.5)
             final_params = params.copy()
             final_params["cost"] = [total_cost]
@@ -332,6 +332,10 @@ def calculate_mdp_reward(
             )
             ce_route = ce_opt.name
 
+            # Use the lower of true or observed health for reward calculation
+            # this emulates asymetry of over classification vs under classification of health
+            health = true_h if true_h < observed_h else observed_h
+
             mu = ce_opt.get_fuzzy_membership(health)  #   for fuzzy membership value
 
             ###T_econ
@@ -341,7 +345,7 @@ def calculate_mdp_reward(
             final_processing_cost = (50.0 * node.product.value_weight) + (
                 np.random.randn()
                 * ((50.0 * node.product.value_weight) * 0.2)
-                * (1.0 - health)
+                * (1.0 - true_h)
             )
 
             # we should consider the MARGINAL profit of a component, assuming the shared disassembly
@@ -394,12 +398,13 @@ def calculate_mdp_reward(
                     "eco_reward": t_eco,
                     "mdp_reward": mdp_reward,
                     "ce_route": ce_route,
+                    "membership": mu,  # Fuzzy membership value
                     "cost": total_cost,  # This is the cost of the path to this CE option
                     "profitability": profitability,  # Potential resale value (phi * beta)
-                    "profit": profit,  # Actual profit in pounds
+                    "profit": mu * profit,  # Actual profit in pounds
                     "base_value": ce_opt.base_value,  # The 'beta' value
                     "value_weight": node.product.value_weight,
-                    "true_health": health,
+                    "true_health": true_h,
                     "observed_health": observed_h,
                 }
             )
@@ -421,7 +426,7 @@ def run_mass_laptop_triage_experiment(sim, n_episodes=10000, noise_level=0.2):
     BASE_ALPHA = 1000.0
 
     os.makedirs("results", exist_ok=True)
-    filename = f"results/mass_triage_experiment_n{n_episodes}_noise{noise_level}.csv"
+    filename = f"results/triage_experiment_n{n_episodes}_noise{noise_level}.csv"
     # If the file exists from a previous run, remove it to start fresh.
     if os.path.exists(filename):
         os.remove(filename)
@@ -490,9 +495,14 @@ if __name__ == "__main__":
     from laptop import Laptop
 
     # Product = Battery(name="Test_Battery_Pack")
-    Product = Laptop(name="Test_Laptop")
+    # Product = Laptop(name="Test_Laptop")
 
-    sim = Simulation(product=Product)
+    for i in [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]:
+        Product = Laptop(name="Test_Laptop")
+        sim = Simulation(product=Product)
+        run_mass_laptop_triage_experiment(sim, n_episodes=1000, noise_level=i)
+
+    # sim = Simulation(product=Product)
 
     # sim.inspect_dag()
 
@@ -505,8 +515,6 @@ if __name__ == "__main__":
     # run_noise_sensitivity_experiment(sim)
 
     # run_variance_comparison_experiment(sim)
-
-    run_mass_laptop_triage_experiment(sim, n_episodes=1000, noise_level=0.2)
 
     # 7. Final Blocking call
     print("All tests complete. Please close the plot windows to exit.")

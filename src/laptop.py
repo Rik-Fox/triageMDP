@@ -793,7 +793,7 @@ class Laptop(Product):
             comp_name_key = comp.name.split("_")[-1]
             health = comp_healths.get(comp_name_key, 1.0)
             comp.health_state.product_health = health
-            state.update(comp.generate_true_state(mode))
+            state.update(comp.generate_true_state())
             component_healths.append(health)
 
             if isinstance(comp, Motherboard):
@@ -801,10 +801,10 @@ class Laptop(Product):
                     mb_comp_name_key = mb_comp.name.split("_")[-1]
                     mb_health = comp_healths.get(mb_comp_name_key, 1.0)
                     mb_comp.health_state.product_health = mb_health
-                    state.update(mb_comp.generate_true_state(mode))
+                    state.update(mb_comp.generate_true_state())
 
         # 3. Build Laptop from average of component healths (simple heuristic for overall laptop health)
-        laptop_health = float(np.mean(component_healths))
+        laptop_health = np.random.uniform(0.2, 1.0)
         state[self.name] = laptop_health
 
         return state
