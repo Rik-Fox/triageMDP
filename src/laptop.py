@@ -1,11 +1,15 @@
 from typing import Dict, List
 import numpy as np
 
-# from src.util import HealthState, Product, Action, draw_labeled_multigraph
-# from src.model import CEOption
+from src.util import HealthState, Product, Action, draw_labeled_multigraph
+from src.model import CEOption
 
-from util import HealthState, Product, Action, draw_labeled_multigraph
-from model import CEOption
+# from util import HealthState, Product, Action, draw_labeled_multigraph
+# from model import CEOption
+
+# motherboard constituant parts are CPU, GPU, Memory, DataStorage 
+# they are only here for completeness, they are not used in the current model
+# and furthermore they are unreachable by the current solvers fuzzy yeild metric
 
 
 class CPU(Product):

@@ -482,17 +482,15 @@ def run_mass_laptop_triage_experiment(sim, n_episodes=10000, noise_level=0.2):
             print(f"Processed and saved episodes up to {i + 1}/{n_episodes}...")
 
     print(f"\nExperiment complete. Results saved to {filename}")
-    # To maintain the function signature, we can read the file back.
-    # Note: This reloads the entire dataset into memory. If memory is a
-    # critical concern for the caller, consider returning the filename instead.
-    # df = pd.read_csv(filename)
-    # return df
 
 
 if __name__ == "__main__":
 
     from battery import Battery
     from laptop import Laptop
+
+    SEED = 42
+    np.random.seed(SEED)
 
     # Product = Battery(name="Test_Battery_Pack")
     # Product = Laptop(name="Test_Laptop")
@@ -517,5 +515,5 @@ if __name__ == "__main__":
     # run_variance_comparison_experiment(sim)
 
     # 7. Final Blocking call
-    print("All tests complete. Please close the plot windows to exit.")
-    plt.show()
+    # print("All tests complete. Please close the plot windows to exit.")
+    # plt.show()

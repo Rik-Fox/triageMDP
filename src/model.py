@@ -3,9 +3,9 @@ from matplotlib.pylab import rand
 import networkx as nx
 from typing import Dict, List, Tuple
 
-# from src.util import Action, Product
+from src.util import Action, Product
 
-from util import Action, Product
+# from util import Action, Product
 
 # import src.util
 

@@ -5,6 +5,12 @@ using  dynamic programming to solve contructed MDPs that have fuzzy rewards due 
 
 ## install and run
 
+The laptop noise-sensitivity sweep seeds NumPy with `SEED = 42` before
+constructing products or running the experiments. Change that value in
+`src\run.py` to generate a different reproducible sequence. Reproducibility
+assumes the same code, dependencies, experiment order and settings. Existing
+matching results CSVs are overwritten.
+
 
 ### Source Files
 
@@ -39,21 +45,17 @@ using  dynamic programming to solve contructed MDPs that have fuzzy rewards due 
     -   **CE Options**:
         -   **Laptop**: `Reuse`, `Refurbish`, `Repair`, `Recycle`
         -   **Motherboard**: `Reuse`, `Refurbish`, `Repair`, `Recycle`
-        -   **CPU**: `Reuse`, `Repair`, `Recycle`
-        -   **GPU**: `Reuse`, `Repair`, `Recycle`
-        -   **Memory**: `Reuse`,`Repair`, `Recycle`
-        -   **DataStorage**: `Reuse`, `Repair`, `Recycle`
-        -   **Screen**: `Reuse`, `Repair`, `Recycle`
+        -   **Display**: `Reuse`, `Repair`, `Recycle`
         -   **Keyboard**: `Reuse`, `Repair`, `Recycle`
-        -   **Touchpad**: `Reuse`, `Repair`, `Recycle`
-        -   **Casing**: `Reuse`, `Repair`, `Recycle`
+        -   **Battery**: `Reuse`, `Repair`, `Recycle`
+        -   **Chassis**: `Reuse`, `Repair`, `Recycle`
 
         here refurbish represents a full repair and/or replacement of constituant components
 
     -   **Processing Edges (Actions & Disassembly)**:
         -   **Laptop**:
             -   `Visual_Inspection` -> `Power_On_Test`
-            -   In-Situ Diagnostics (run on device): `CPU`, `GPU`, `Memory`, `DataStorage`, `Screen`, `Keyboard`, `Touchpad`
+            -   In-Situ Diagnostics (run on device):  `Display`, `Keyboard`, `Battery`
             -   `Open_Casing` (Disassembly)
         -   **Motherboard**:
             -   `Full_System_Diagnostic`
