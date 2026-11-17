@@ -1,10 +1,12 @@
-from typing import Dict, List
+from typing import Dict
 import numpy as np
 
-from src.util import HealthState, Product, Action, draw_labeled_multigraph
+# use for data_anlysis.ipynb
+from src.util import HealthState, Product, Action
 from src.model import CEOption
 
-# from util import HealthState, Product, Action, draw_labeled_multigraph
+# use for run.py
+# from util import HealthState, Product, Action
 # from model import CEOption
 
 # motherboard constituant parts are CPU, GPU, Memory, DataStorage 
@@ -770,18 +772,6 @@ class Laptop(Product):
                 "Memory": 1.0,
                 "DataStorage": 1.0,
             }
-        # elif mode =="random":
-        #     comp_healths = {
-        #         "Motherboard": np.random.uniform(0.4, 1.0),
-        #         "Display": np.random.uniform(0.4, 1.0),
-        #         "Keyboard": np.random.uniform(0.4, 1.0),
-        #         "Battery": np.random.uniform(0.4, 1.0),
-        #         "Chassis": np.random.uniform(0.4, 1.0),
-        #         "CPU": np.random.uniform(0.4, 1.0),
-        #         "GPU": np.random.uniform(0.4, 1.0),
-        #         "Memory": np.random.uniform(0.4, 1.0),
-        #         "DataStorage": np.random.uniform(0.4, 1.0),
-        #     }
         else:  # Random
             comp_healths = {
                 comp.name.split("_")[-1]: np.random.uniform(0.2, 1.0)

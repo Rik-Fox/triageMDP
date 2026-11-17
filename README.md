@@ -1,68 +1,75 @@
 # triageMDP
-using  dynamic programming to solve contructed MDPs that have fuzzy rewards due to a triage process that is inherently fuzzy.
 
-## Project Structure
+Using dynamic programming to solve constructed MDPs with fuzzy rewards, where the
+fuzziness reflects a triage process that is inherently uncertain.
 
-## install and run
+## Install and run
 
-The laptop noise-sensitivity sweep seeds NumPy with `SEED = 42` before
-constructing products or running the experiments. Change that value in
-`src\run.py` to generate a different reproducible sequence. Reproducibility
-assumes the same code, dependencies, experiment order and settings. Existing
-matching results CSVs are overwritten.
+```
+python -m venv .venv
 
+powershell -> .\.venv\Scripts\Activate.ps1
+bash -> source .venv/bin/activate
+
+pip install -r requirements.txt
+python ./src/run.py
+```
+
+The analysis notebook additionally requires Jupyter (`pip install jupyter`).
+
+## Reproducibility
+
+The entry point seeds NumPy (`SEED = 42`). Noise levels and the number of episodes
+are set in the `if __name__ == "__main__"` block of `src/run.py`; changing the seed
+generates a different reproducible sequence. Existing matching results CSVs in
+`results/` are overwritten.
 
 ### Source Files
 
--   **`run.py`**: The main entry point for running simulations and experiments. It contains functions to run different scenarios, such as noise sensitivity analysis and variance comparison experiments for different products.
+- **`run.py`**: The main entry point. Runs the mass laptop triage Monte Carlo
+  experiment and computes the per-component economic and ecological rewards for
+  each optimal policy.
+- **`sim.py`**: Defines the `Simulation` class, which builds the State-Augmented
+  Disassembly Graph (SADG) and its solver, and provides graph and fuzzy-reward
+  figure helpers. It is product-agnostic: any product inheriting from `Product`
+  can be simulated.
+- **`model.py`**: Core MDP logic. Defines `StateAugmentedDisassemblyGraph`, which
+  builds the decision graph; `Solver`, which implements the dynamic programming
+  algorithm; and `CEOption`, which represents a Circular Economy option with
+  fuzzy logic.
+- **`util.py`**: Utility classes used throughout: the abstract base `Product`
+  class, `HealthState`, and `Action`, plus helper functions for drawing graphs.
+- **`laptop.py`**: Defines the `Laptop` product and its components.
 
--   **`sim.py`**: Defines the `Simulation` class, which is the core of the simulation framework. It is responsible for creating the State-Augmented Graph (SAG), running experiments, and plotting the results. It is designed to be product-agnostic, meaning it can simulate any product that inherits from the `Product` class.
+### Laptop model
 
--   **`model.py`**: This file contains the core logic for the Markov Decision Process (MDP) model. It defines the `StateAugmentedGraph` class, which builds the decision graph, and the `Solver` class, which implements the dynamic programming algorithm to find the optimal policy. It also defines the `CEOption` class, which represents a Circular Economy option with fuzzy logic.
+- **Physical Structure**:
+    - `Laptop` -> `Motherboard`, `Display`, `Keyboard`, `Battery`, `Chassis`
+    - `Motherboard` -> `CPU`, `GPU`, `Memory`, `DataStorage`
 
--   **`util.py`**: A collection of utility classes and functions used throughout the project. It defines the base `Product` class, which is an abstract class for all products, as well as the `HealthState`, `Sensor`, and `Action` classes. It also contains helper functions for plotting graphs.
+    `CPU`, `GPU`, `Memory`, `DataStorage` are not reachable with the current structure and parameters but are included for completeness
 
--   **`battery.py`**: Defines the `Battery` product and its components.
+- **CE Options**:
+    - **Laptop**: `Reuse`, `Refurbish`, `Repair`, `Recycle`
+    - **Motherboard**: `Reuse`, `Refurbish`, `Repair`, `Recycle`
+    - **CPU**, **GPU**, **Memory**, **DataStorage**, **Display**, **Keyboard**,
+      **Battery**, **Chassis**: `Reuse`, `Repair`, `Recycle`
 
-    -   **Physical Structure**: A `Battery` is composed of `Module`s, and each `Module` is composed of `Cell`s.
-        -   `Battery` -> `Module` -> `Cell`
+    Here refurbish represents a full repair and/or replacement of constituent
+    components.
 
-    -   **CE Options**:
-        -   **Battery**: `Reuse_EV_Pack`, `Repurpose_Storage`, `Recycle_Pack_Direct`
-        -   **Module**: `Reuse_Module`, `Recycle_Module_Direct`
-        -   **Cell**: `Reuse_Cell`, `Recycle_Materials`
-
-    -   **Processing Edges**:
-        -   **Battery**: `High_Voltage_Isolation`, `Remove_Top_Cover`, `Remove_Thermal_Shield`, `Extract_Modules` (disassembly)
-        -   **Module**: `Bench_Diagnostic`, `Extract_Cells` (disassembly)
-
--   **`laptop.py`**: Defines the `Laptop` product and its components.
-
-    -   **Physical Structure**:
-        -   `Laptop` -> `Motherboard`, `Screen`, `Keyboard`, `Touchpad`, `Casing`
-        -   `Motherboard` -> `CPU`, `GPU`, `Memory`, `DataStorage`
-
-    -   **CE Options**:
-        -   **Laptop**: `Reuse`, `Refurbish`, `Repair`, `Recycle`
-        -   **Motherboard**: `Reuse`, `Refurbish`, `Repair`, `Recycle`
-        -   **Display**: `Reuse`, `Repair`, `Recycle`
-        -   **Keyboard**: `Reuse`, `Repair`, `Recycle`
-        -   **Battery**: `Reuse`, `Repair`, `Recycle`
-        -   **Chassis**: `Reuse`, `Repair`, `Recycle`
-
-        here refurbish represents a full repair and/or replacement of constituant components
-
-    -   **Processing Edges (Actions & Disassembly)**:
-        -   **Laptop**:
-            -   `Visual_Inspection` -> `Power_On_Test`
-            -   In-Situ Diagnostics (run on device):  `Display`, `Keyboard`, `Battery`
-            -   `Open_Casing` (Disassembly)
-        -   **Motherboard**:
-            -   `Full_System_Diagnostic`
-            -   `Bench_Diagnostic_Motherboard`
-            -   `Extract_Components` (Disassembly)
-        -   **CPU**: `Bench_Diagnostic_CPU`
-        -   **GPU**: `Bench_Diagnostic_GPU`
-        -   **DataStorage**: `Wipe_DataStorage`
-
-    
+- **Processing Edges (Actions & Disassembly)**:
+    - **Laptop**:
+        - `Visual_Inspection` -> `Power_On_Test`
+        - In-Situ Diagnostics (run on device): `Display`, `Keyboard`, `Battery`,
+          `Motherboard`
+        - `Open_Chassis`, then `Wipe_DataStorage` (required before reuse,
+          refurbish or repair of the storage)
+        - `Extract_Components` (Disassembly)
+    - **Motherboard**:
+        - `Full_System_Diagnostic`
+        - `Bench_Diagnostic_Motherboard`
+        - In-Situ Diagnostics: `CPU`, `GPU`, `Memory`, `DataStorage`
+        - `Extract_Components` (Disassembly)
+    - **Bench Diagnostics**: `CPU`, `GPU`, `Memory`, `DataStorage`, `Display`,
+      `Keyboard`, `Battery`, `Chassis`

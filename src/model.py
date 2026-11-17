@@ -1,13 +1,12 @@
-import numpy as np
-from matplotlib.pylab import rand
 import networkx as nx
 from typing import Dict, List, Tuple
 
+# use for data_anlysis.ipynb
 from src.util import Action, Product
 
+# use for run.py
 # from util import Action, Product
 
-# import src.util
 
 
 class CEOption(Action):
@@ -82,10 +81,6 @@ class CEOption(Action):
         return ((self.base_value * self.phi_k) * mu) - self.cost
         # deterministic reward based on fuzzy membership
         # return (self.base_value * mu ) - self.cost
-
-        # return (
-        #     (self.base_value + (50 * np.random.rand()) - 25) * mu
-        # ) - self.cost  # stochastic reward with noise, scaled by fuzzy membership
 
 
 class DisassemblyEdge(Action):

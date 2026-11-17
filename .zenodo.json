@@ -1,0 +1,6 @@
+{
+  "title": "triageMDP: fuzzy-reward MDP triage of end-of-use laptops",
+  "creators": [{ "name": "YOUR CITATION NAME" }],
+  "license": "MIT",
+  "keywords": ["circular economy", "POMDP", "fuzzy rewards", "ITAD", "diagnostic accuracy"]
+}

@@ -1,6 +1,5 @@
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from abc import ABC, abstractmethod
-import itertools as it
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -107,34 +106,12 @@ class Product(ABC):
                     self.graph.add_edge(
                         u_for_edge=prod, v_for_edge=prod, action=act.name
                     )
-
-            # for ce in prod.ce_options:
-            #     term_node = f"{ce.name}_{prod.name}"
-            #     self.graph.add_node(node_for_adding=term_node)
-            #     self.graph.add_edge(
-            #         u_for_edge=prod, v_for_edge=term_node, action=ce.name
-            #     )
-
         traverse(prod=self)
 
     @abstractmethod
     def generate_true_state(self, mode="uniform") -> Dict[str, float]:
         """Generates a dictionary of ground-truth health values for the product and its components."""
         pass
-
-
-class ProductGenerator:
-    """Factory for creating random product instances."""
-
-    def generate_batch(self, size: int) -> list[Product]:
-        products = []
-        for i in range(size):
-            # Example generation logic
-            h_state = HealthState(
-                product_health=np.random.uniform(0.5, 1.0), component_healths={"A": 0.9}
-            )
-            products.append(Product(health_state=h_state, ID=i))
-        return products
 
 
 def draw_labeled_multigraph(G, attr_name="action", ax=None):
@@ -324,34 +301,3 @@ def draw_labeled_multigraph(G, attr_name="action", ax=None):
             bbox=props,
             family="monospace",
         )
-
-
-if __name__ == "__main__":
-    print("=" * 60)
-    print("TEST 1: Core Utilities and Sensor Noise")
-    print("-" * 60)
-    print("SCENARIO:")
-    print("  We create a 'God Mode' product with a true health of 0.85.")
-    print("  We then pass this through a Sensor with a 5% standard deviation.")
-    print("EXPECTED OUTCOME:")
-    print("  The sensor reading should deviate slightly from 0.85, proving")
-    print("  our Monte Carlo inputs will have realistic diagnostic uncertainty.")
-    print("-" * 60)
-
-    # 1. Setup Ground Truth
-    true_health = 0.85
-    hs = HealthState(product_health=true_health, component_healths={"CompA": 0.8})
-    p = Product(hs, name="Test_Inverter")
-
-    # 2. Setup Sensor
-    sensor = Sensor(noise_std=0.05)
-
-    # 3. Execution
-    print(f"INPUT   : {p.name} created. True Health = {true_health:.3f}")
-
-    readings = [sensor.read(true_health) for _ in range(3)]
-    for i, reading in enumerate(readings):
-        error = abs(true_health - reading)
-        print(f"OUTPUT {i+1}: Sensor reads {reading:.3f} (Error: {error:.3f})")
-
-    print("=" * 60 + "\n")
